@@ -1,8 +1,8 @@
 const express = require('express');
 const axios = require('axios');
-const app = express();
-const PORT = process.env.PORT || 3000;
+const config = require('./config');
 
+const app = express();
 app.use(express.json());
 
 // TikTok download route
@@ -11,8 +11,8 @@ app.post('/api/tiktok', async (req, res) => {
         const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'TikTok URL is required' });
 
-        // Example using third-party API (replace with your own if you have one)
-        const apiKey = process.env.TIKTOK_API_KEY || "YOUR_API_KEY_HERE";
+        // Use your API key from config
+        const apiKey = config.TIKTOK_API_KEY;
         const apiUrl = `https://api.tiktok-downloader.com/download?url=${encodeURIComponent(url)}&apikey=${apiKey}`;
 
         const response = await axios.get(apiUrl);
@@ -31,6 +31,6 @@ app.get('/', (req, res) => {
     res.send('TikTok API is running!');
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(config.PORT, () => {
+    console.log(`Server running on port ${config.PORT}`);
 });
