@@ -1,17 +1,17 @@
 {
   "name": "tiktok-api",
   "version": "1.0.0",
-  "description": "TikTok downloader API for WhatsApp bot",
+  "description": "TikTok video downloader API for WhatsApp bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "engines": {
-    "node": "16.x || 18.x || 20.x"
-  },
   "dependencies": {
-    "express": "^4.19.2",
-    "axios": "^1.6.7",
-    "dotenv": "^16.3.1"
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
