@@ -1,52 +1,63 @@
 const express = require('express');
 const axios = require('axios');
 const app = express();
-require('dotenv').config();
-
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('TikTok Scraper API is running!');
+// TikTok download route
+app.post('/api/tiktok', async (req, res) => {
+    try {
+        const { url } = req.body;
+
+        if (!url) return res.status(400).json({ error: 'TikTok URL is required' });
+
+        console.log('Received URL:', url);
+
+        // --- Scraping logic ---
+        const videoData = await fetchTikTokVideo(url);
+
+        if (!videoData) {
+            console.log('❌ Failed to fetch TikTok video for URL:', url);
+            return res.status(500).json({ error: 'Failed to fetch TikTok video' });
+        }
+
+        console.log('✅ Video fetched successfully');
+        res.json(videoData);
+
+    } catch (err) {
+        console.error('💥 Error in /api/tiktok:', err.message);
+        res.status(500).json({ error: 'Internal server error', details: err.message });
+    }
 });
 
-app.post('/api/tiktok', async (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'TikTok URL is required' });
-
-  try {
-    const videoUrl = await getTikTokVideo(url);
-    if (!videoUrl) return res.status(500).json({ error: 'Failed to fetch TikTok video' });
-
-    res.json({ video: videoUrl });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching TikTok video' });
-  }
+app.get('/', (req, res) => {
+    res.send('TikTok API is running!');
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
 
-async function getTikTokVideo(tiktokUrl) {
-  try {
-    const { data } = await axios.get(tiktokUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-      }
-    });
+// --- Example TikTok scraper ---
+async function fetchTikTokVideo(url) {
+    try {
+        // Convert short URLs to full TikTok links if needed
+        const resolvedUrl = await axios.get(url, { maxRedirects: 5 }).then(r => r.request.res.responseUrl).catch(() => url);
 
-    const match = data.match(/<script id="__NEXT_DATA__" type="application\/json">(.+?)<\/script>/);
-    if (!match) return null;
+        // Request TikTok page HTML
+        const pageHtml = await axios.get(resolvedUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.data);
 
-    const jsonData = JSON.parse(match[1]);
-    const video = jsonData.props.pageProps.itemInfo.itemStruct.video.playAddr;
+        // Extract video URL from HTML
+        const videoMatch = pageHtml.match(/"downloadAddr":"([^"]+)"/);
+        if (!videoMatch) return null;
 
-    return video ? video.split('?')[0] : null;
-  } catch (err) {
-    console.error('Scraper error:', err.message);
-    return null;
-  }
+        const videoUrl = decodeURIComponent(videoMatch[1]);
+
+        return { videoUrl, originalUrl: resolvedUrl };
+
+    } catch (err) {
+        console.error('Error fetching TikTok video:', err.message);
+        return null;
+    }
 }
