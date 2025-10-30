@@ -1,47 +1,36 @@
-require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const cheerio = require('cheerio');
-
 const app = express();
+const PORT = process.env.PORT || 3000;
+
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
-const API_KEY = process.env.MY_API_KEY || '';
+// TikTok download route
+app.post('/api/tiktok', async (req, res) => {
+    try {
+        const { url } = req.body;
+        if (!url) return res.status(400).json({ error: 'TikTok URL is required' });
 
-app.get('/', (req, res) => {
-  res.send('🎵 TikTok API is running!');
+        // Example using third-party API (replace with your own if you have one)
+        const apiKey = process.env.TIKTOK_API_KEY || "YOUR_API_KEY_HERE";
+        const apiUrl = `https://api.tiktok-downloader.com/download?url=${encodeURIComponent(url)}&apikey=${apiKey}`;
+
+        const response = await axios.get(apiUrl);
+        if (response.data) {
+            res.json(response.data);
+        } else {
+            res.status(500).json({ error: 'No data from TikTok API' });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch TikTok video' });
+    }
 });
 
-// TikTok Downloader API
-app.get('/api/tiktok', async (req, res) => {
-  const { url, apikey } = req.query;
-
-  // Optional API key check
-  if (API_KEY && apikey !== API_KEY) {
-    return res.status(403).json({ error: "Invalid or missing API key!" });
-  }
-
-  if (!url) return res.status(400).json({ error: "Please provide ?url=<tiktok_video_url>" });
-
-  try {
-    // TikTok public video scraping
-    const { data } = await axios.get(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const $ = cheerio.load(data);
-    const scriptTag = $('script[id="SIGI_STATE"]').html();
-    if (!scriptTag) return res.json({ error: "Failed to extract video info!" });
-
-    const jsonData = JSON.parse(scriptTag);
-    const videoUrl = jsonData.ItemModule[Object.keys(jsonData.ItemModule)[0]].video.playAddr;
-
-    return res.json({ video: videoUrl });
-  } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch video!", details: err.message });
-  }
+app.get('/', (req, res) => {
+    res.send('TikTok API is running!');
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 TikTok API running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
