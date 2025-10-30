@@ -1,36 +1,26 @@
 const express = require('express');
-const axios = require('axios');
+const { getTikTokVideo } = require('./tiktokScraper');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// TikTok scraper route
+// TikTok download route
 app.post('/api/tiktok', async (req, res) => {
     try {
-        const { url } = req.body;
+        let { url } = req.body;
         if (!url) return res.status(400).json({ error: 'TikTok URL is required' });
 
-        // TikTok scraping API (custom or third-party)
-        // Example free endpoint: https://api.tiktokdlapi.com
-        // Replace below with your own scraper logic if needed
-        const apiResponse = await axios.get(`https://api.tiktokdlapi.com/download?url=${encodeURIComponent(url)}`);
+        const videoUrl = await getTikTokVideo(url);
+        if (!videoUrl) return res.status(500).json({ error: 'Failed to fetch TikTok video' });
 
-        if (apiResponse.data && apiResponse.data.video) {
-            res.json({ video: apiResponse.data.video });
-        } else {
-            res.status(500).json({ error: 'Failed to fetch TikTok video' });
-        }
+        res.json({ video: videoUrl });
     } catch (err) {
-        console.error(err.message);
+        console.error(err);
         res.status(500).json({ error: 'Failed to fetch TikTok video' });
     }
 });
 
-app.get('/', (req, res) => {
-    res.send('TikTok Scraper API is running!');
-});
+app.get('/', (req, res) => res.send('TikTok Custom Scraper API is running!'));
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
